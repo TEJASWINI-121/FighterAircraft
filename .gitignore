@@ -1,0 +1,35 @@
+# Python / Project Environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# Logs and Checkpoints
+logs/
+tensorboard_logs/
+*.keras
+*.h5
+*.ckpt
+*.tmp
+*.log
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Temporary outputs
+*_output.txt
+*_output_utf8.txt
+audit_results.txt
+logs_module3.txt
+output*.txt
+preproc_run_output*.txt
+
+# Datasets and Results (Avoid pushing large files)
+dataset_files/
+fighter_dataset/
+results/
