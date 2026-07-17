@@ -54,7 +54,7 @@ class FighterAircraftPreprocessor:
             ds = tf.keras.utils.image_dataset_from_directory(
                 directory=split_path,
                 labels="inferred",
-                label_mode="int",  # Encode labels to [0-15] integer values
+                label_mode="categorical",  # Encode labels to one-hot vector
                 class_names=self.class_names,  # Ensures class mapping is consistent
                 color_mode="rgb",
                 batch_size=self.batch_size,
@@ -82,9 +82,9 @@ class FighterAircraftPreprocessor:
             )
             
             # 3. High Performance Optimization Pipeline
-            # Caches training dataset elements in-memory so files are not read repeatedly.
             # Prefetches elements to GPU/CPU while current batch is being processed.
-            ds = ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
+            # In-memory caching removed to avoid WSL ResourceExhaustedError OOM.
+            ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
             
             self.datasets[split] = ds
             print(f"[SUCCESS] Configured split '{split}' with {num_samples} images ({len(ds)} batches).")
@@ -122,7 +122,7 @@ class FighterAircraftPreprocessor:
             report.append(f"  - {split:<12}: {cnt:<5} images ({num_batches} batches)")
         report.append("-" * 60)
         report.append("DATASET PIPELINE OPTIMIZATIONS:")
-        report.append("  1. In-memory caching: Enabled (.cache())")
+        report.append("  1. In-memory caching: Disabled (OOM mitigation)")
         report.append("  2. Parallel pre-processing elements execution: AUTOTUNE")
         report.append("  3. Overlapped training step fetching execution: AUTOTUNE")
         report.append(f"  4. Runtime Data Augmentation: Disabled (Offline augmentation applied: {not self.apply_runtime_augmentation})")
