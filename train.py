@@ -67,7 +67,7 @@ def main():
     print("\n>>> 2. LOADING DATASETS <<<")
     preprocessor = FighterAircraftPreprocessor(
         dataset_dir=dataset_dir, 
-        batch_size=32, 
+        batch_size=8, 
         image_size=(224, 224)
     )
     datasets = preprocessor.load_and_preprocess()
@@ -85,7 +85,8 @@ def main():
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path, 
         save_best_only=True, 
-        monitor="val_loss",
+        monitor="val_accuracy",
+        mode="max",
         verbose=1
     )
     
@@ -104,18 +105,43 @@ def main():
         verbose=1
     )
 
-    callbacks = [checkpoint_cb, tensorboard_cb, early_stopping_cb]
+    # Reduce Learning Rate
+    reduce_lr_cb = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.2,
+        patience=2,
+        min_lr=1e-7,
+        verbose=1
+    )
+
+    callbacks = [checkpoint_cb, tensorboard_cb, early_stopping_cb, reduce_lr_cb]
 
     print("\n>>> 5. STARTING TRAINING <<<")
     history = model.fit(
         train_ds, 
         validation_data=val_ds, 
-        epochs=15, 
+        epochs=50, 
         callbacks=callbacks
     )
     print("[SUCCESS] Training completed.")
 
-    print("\n>>> 6. PLOTTING TRAINING CURVES <<<")
+    print("\n>>> 6. ADDITIONAL EVALUATION <<<")
+    if early_stopping_cb.stopped_epoch > 0:
+        best_epoch = early_stopping_cb.best_epoch
+    else:
+        best_epoch = len(history.history['loss']) - 1
+
+    print(f"Best Epoch: {best_epoch + 1}")
+    print(f"Final Training Accuracy: {history.history['accuracy'][best_epoch]:.4f}")
+    print(f"Final Validation Accuracy: {history.history['val_accuracy'][best_epoch]:.4f}")
+    print(f"Final Training Loss: {history.history['loss'][best_epoch]:.4f}")
+    print(f"Final Validation Loss: {history.history['val_loss'][best_epoch]:.4f}")
+
+    total_params = model.count_params()
+    trainable_params = sum(tf.keras.backend.count_params(w) for w in model.trainable_weights)
+    print(f"Number of Trainable Parameters: {trainable_params:,}")
+
+    print("\n>>> 7. PLOTTING TRAINING CURVES <<<")
     plot_training_curves(history, results_dir)
 
 if __name__ == "__main__":

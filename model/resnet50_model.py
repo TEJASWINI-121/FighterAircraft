@@ -18,9 +18,16 @@ def build_resnet50_model(num_classes=16):
     )
     print(f"[SUCCESS] ResNet50 backbone loaded with ImageNet weights.")
     
-    # 2. Freeze the backbone
-    backbone.trainable = False
-    print(f"[SUCCESS] Backbone completely frozen.")
+    # 2. Fine Tune ResNet50 (Unfreeze last 30 layers)
+    backbone.trainable = True
+    for layer in backbone.layers[:-30]:
+        layer.trainable = False
+        
+    trainable_count = sum(1 for layer in backbone.layers if layer.trainable)
+    frozen_count = sum(1 for layer in backbone.layers if not layer.trainable)
+    print(f"[SUCCESS] Backbone fine-tuning enabled.")
+    print(f"[INFO] Total trainable layers in backbone: {trainable_count}")
+    print(f"[INFO] Frozen layers in backbone: {frozen_count}")
 
     # 3. Build classification head
     inputs = tf.keras.Input(shape=(224, 224, 3), name="input_image")
@@ -36,8 +43,8 @@ def build_resnet50_model(num_classes=16):
 
     # 4. Compile the model
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-        loss=tf.keras.losses.CategoricalCrossentropy(),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+        loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.1),
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(name="accuracy"),
             tf.keras.metrics.Precision(name="precision"),
